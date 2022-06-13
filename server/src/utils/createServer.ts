@@ -14,7 +14,10 @@ import fastifyCookies from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
 import UserResolver from '../modules/user/user.resolver';
 
-const app = fastify();
+const app = fastify({
+  // turn this on to get WAY more details in error messages
+  // logger: true,
+});
 
 app.register(fastifyCors, {
   // we need this to set cookies in the browser
@@ -86,6 +89,8 @@ async function buildContext({
   }
 }
 
+export type Context = Awaited<ReturnType<typeof buildContext>>;
+
 export async function createServer() {
   // need: root query
   // root query needs root resolver
@@ -119,7 +124,7 @@ const subscriptionServer = ({
       schema,
       execute,
       subscribe,
-      async onConnect(connectionParams: {Authorization: string}) {
+      async onConnect(connectionParams: { Authorization: string }) {
         return buildContext({ connectionParams });
       },
     },
