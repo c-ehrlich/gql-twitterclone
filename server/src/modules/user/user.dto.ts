@@ -42,3 +42,18 @@ export class LoginInput {
   @Length(6, 56)
   password: string;
 }
+
+@ObjectType()
+export class UserFollowers {
+  @Field()
+  count: number;
+
+  @Field(() => [User])
+  items: User[];
+}
+
+@InputType()
+export class FollowUserInput {
+  @Field()
+  username: string;
+}

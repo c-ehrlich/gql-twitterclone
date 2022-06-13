@@ -36,3 +36,42 @@ export async function verifyPassword({
 }) {
   return argon2.verify(password, candidatePassword);
 }
+
+export async function followUser({
+  userId,
+  username,
+}: {
+  userId: string;
+  username: string;
+}) {
+  return prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      following: {
+        connect: {
+          username,
+        },
+      },
+    },
+  });
+}
+
+export async function findUsers() {
+  return prisma.user.findMany();
+}
+
+export async function findUserFollowing(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { following: true },
+  });
+}
+
+export async function findUserFollowedBy(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { followedBy: true },
+  });
+}

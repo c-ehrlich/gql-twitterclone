@@ -13,6 +13,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyCookies from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
 import UserResolver from '../modules/user/user.resolver';
+import { User } from '@prisma/client';
 
 const app = fastify({
   // turn this on to get WAY more details in error messages
@@ -60,6 +61,8 @@ function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
   };
 }
 
+type CtxUser = Omit<User, 'password'>;
+
 async function buildContext({
   request,
   reply,
@@ -74,7 +77,7 @@ async function buildContext({
   if (connectionParams || !request) {
     try {
       return {
-        user: app.jwt.verify(connectionParams?.Authorization || ''),
+        user: app.jwt.verify<CtxUser>(connectionParams?.Authorization || ''),
       };
     } catch (e) {
       return { user: null };
@@ -82,7 +85,7 @@ async function buildContext({
   }
 
   try {
-    const user = await request?.jwtVerify();
+    const user = await request?.jwtVerify<CtxUser>();
     return { request, reply, user };
   } catch (e) {
     return { request, reply, user: null };
