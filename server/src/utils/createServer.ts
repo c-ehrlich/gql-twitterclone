@@ -1,12 +1,90 @@
 import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 import { ApolloServer } from 'apollo-server-fastify';
-import fastify from 'fastify';
-import { buildSchema } from 'type-graphql'
+import { ApolloServerPlugin } from 'apollo-server-plugin-base';
+import fastify, {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from 'fastify';
+import { execute, GraphQLSchema, subscribe } from 'graphql';
+import { SubscriptionServer } from 'subscriptions-transport-ws';
+import { buildSchema } from 'type-graphql';
+import fastifyCors from '@fastify/cors';
+import fastifyCookies from '@fastify/cookie';
+import fastifyJwt from '@fastify/jwt';
 import UserResolver from '../modules/user/user.resolver';
 
 const app = fastify();
 
-function buildContext() {}
+app.register(fastifyCors, {
+  // we need this to set cookies in the browser
+  credentials: true,
+  origin: (origin, cb) => {
+    if (
+      !origin ||
+      [
+        'http://localhost:3000',
+        'https://studio.apollographql.com',
+        // TODO add environment variable
+      ].includes(origin)
+    ) {
+      return cb(null, true);
+    }
+
+    return cb(new Error('Not allowed'), false);
+  },
+});
+
+app.register(fastifyCookies, { parseOptions: {} });
+
+app.register(fastifyJwt, {
+  secret: 'change-me', // TODO use env
+  cookie: {
+    cookieName: 'token',
+    signed: false,
+  },
+});
+
+function fastifyAppClosePlugin(app: FastifyInstance): ApolloServerPlugin {
+  return {
+    async serverWillStart() {
+      return {
+        async drainServer() {
+          await app.close();
+        },
+      };
+    },
+  };
+}
+
+async function buildContext({
+  request,
+  reply,
+  connectionParams,
+}: {
+  request?: FastifyRequest;
+  reply?: FastifyReply;
+  connectionParams?: {
+    Authorization: string;
+  };
+}) {
+  if (connectionParams || !request) {
+    try {
+      return {
+        user: app.jwt.verify(connectionParams?.Authorization || ''),
+      };
+    } catch (e) {
+      return { user: null };
+    }
+  }
+
+  try {
+    const user = await request?.jwtVerify();
+    return { request, reply, user };
+  } catch (e) {
+    return { request, reply, user: null };
+  }
+}
 
 export async function createServer() {
   // need: root query
@@ -18,6 +96,7 @@ export async function createServer() {
   const server = new ApolloServer({
     schema,
     plugins: [
+      fastifyAppClosePlugin(app),
       // Graceful shutdown
       // https://www.apollographql.com/docs/apollo-server/api/plugin/drain-http-server/
       ApolloServerPluginDrainHttpServer({ httpServer: app.server }),
@@ -27,3 +106,26 @@ export async function createServer() {
 
   return { app, server };
 }
+
+const subscriptionServer = ({
+  schema,
+  server,
+}: {
+  schema: GraphQLSchema;
+  server: ApolloServer;
+}) => {
+  return SubscriptionServer.create(
+    {
+      schema,
+      execute,
+      subscribe,
+      async onConnect(connectionParams: {Authorization: string}) {
+        return buildContext({ connectionParams });
+      },
+    },
+    {
+      server,
+      path: '/graphql',
+    }
+  );
+};
