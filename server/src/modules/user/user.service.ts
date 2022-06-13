@@ -58,6 +58,27 @@ export async function followUser({
   });
 }
 
+export async function unfollowUser({
+  userId,
+  username,
+}: {
+  userId: string;
+  username: string;
+}) {
+  return prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      following: {
+        disconnect: {
+          username,
+        },
+      },
+    },
+  });
+}
+
 export async function findUsers() {
   return prisma.user.findMany();
 }

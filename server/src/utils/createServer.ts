@@ -14,6 +14,7 @@ import fastifyCookies from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
 import UserResolver from '../modules/user/user.resolver';
 import { User } from '@prisma/client';
+import { bearerAuthChecker } from './bearerAuthChecker';
 
 const app = fastify({
   // turn this on to get WAY more details in error messages
@@ -99,6 +100,7 @@ export async function createServer() {
   // root query needs root resolver
   const schema = await buildSchema({
     resolvers: [UserResolver],
+    authChecker: bearerAuthChecker,
   });
 
   const server = new ApolloServer({
