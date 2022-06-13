@@ -7,8 +7,12 @@ import {
   Query,
   Resolver,
   Root,
+  PubSub,
+  PubSubEngine,
+  Subscription,
 } from 'type-graphql';
 import { Context } from '../../utils/createServer';
+import PubSubEnum from '../../utils/pubSub';
 import { findUserById } from '../user/user.service';
 import { CreateMessageInput, Message } from './message.dto';
 import { createMessage, findMessages } from './message.service';
@@ -19,9 +23,12 @@ class MessageResolver {
   @Mutation(() => Message)
   async createMessage(
     @Arg('input') input: CreateMessageInput,
-    @Ctx() context: Context
+    @Ctx() context: Context,
+    @PubSub() pubSub: PubSubEngine
   ) {
     const result = await createMessage({ ...input, userId: context.user?.id! });
+
+    await pubSub.publish(PubSubEnum.newMessage, result);
 
     return result;
   }
@@ -34,7 +41,14 @@ class MessageResolver {
 
   @Query(() => [Message])
   async messages() {
-    return findMessages()
+    return findMessages();
+  }
+
+  @Subscription(() => Message, {
+    topics: PubSubEnum.newMessage
+  })
+  newMessage(@Root() message: Message): Message {
+    return message;
   }
 }
 

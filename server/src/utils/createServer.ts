@@ -115,6 +115,8 @@ export async function createServer() {
     context: buildContext,
   });
 
+  subscriptionServer({ schema, server: app.server});
+
   return { app, server };
 }
 
@@ -123,7 +125,7 @@ const subscriptionServer = ({
   server,
 }: {
   schema: GraphQLSchema;
-  server: ApolloServer;
+  server: typeof app.server;
 }) => {
   return SubscriptionServer.create(
     {
