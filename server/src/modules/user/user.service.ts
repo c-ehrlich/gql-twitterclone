@@ -96,3 +96,11 @@ export async function findUserFollowedBy(userId: string) {
     include: { followedBy: true },
   });
 }
+
+export async function findUserById(userId: string) {
+  return prisma.user.findFirst({
+    where: {
+      id: userId,
+    },
+  });
+}

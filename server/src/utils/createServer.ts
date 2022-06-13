@@ -15,6 +15,7 @@ import fastifyJwt from '@fastify/jwt';
 import UserResolver from '../modules/user/user.resolver';
 import { User } from '@prisma/client';
 import { bearerAuthChecker } from './bearerAuthChecker';
+import MessageResolver from '../modules/message/message.resolver';
 
 const app = fastify({
   // turn this on to get WAY more details in error messages
@@ -99,7 +100,7 @@ export async function createServer() {
   // need: root query
   // root query needs root resolver
   const schema = await buildSchema({
-    resolvers: [UserResolver],
+    resolvers: [UserResolver, MessageResolver],
     authChecker: bearerAuthChecker,
   });
 
