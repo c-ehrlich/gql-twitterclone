@@ -1,0 +1,32 @@
+# this is naming the query...can call it anything we want
+mutation Register($input: RegisterUserInput!) {
+  # this is our mutation...name has to match our schema
+  register(input: $input) {
+    username
+    email
+  }
+}
+
+mutation Login($input: LoginInput!) {
+  login(input: $input)
+}
+
+query Me {
+  me {
+    id
+    username
+    email
+    followers{
+        count
+        items {
+            username
+        }
+    }
+    following{
+        count
+        items {
+            username
+        }
+    }
+  }
+}
